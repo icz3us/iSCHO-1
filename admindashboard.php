@@ -260,6 +260,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && (isset($_POST['approve']) || isset($
 
                 $mail->send();
                 $_SESSION['email_success'] = "Email sent successfully to $email!";
+
+                // Insert notice into notices table with the email's plain-text body
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO notices (user_id, message) VALUES (?, ?)");
+                    $stmt->execute([$applicant_id, $mail->AltBody]);
+                    $_SESSION['notice_success'] = "Notice sent successfully!";
+                } catch (PDOException $e) {
+                    $_SESSION['notice_error'] = "Failed to send notice: " . $e->getMessage();
+                }
             } catch (Exception $e) {
                 $_SESSION['email_error'] = "Failed to send email: {$mail->ErrorInfo}";
             }
@@ -300,9 +309,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['edit_notice'])) {
         $_SESSION['notice_error'] = "Notice message cannot be empty.";
     } else {
         try {
-            $stmt = $pdo->prepare("UPDATE notices SET message = ? WHERE id = ?");
+            $stmt = $pdo->prepare("UPDATE notices SET message = ?, updated_at = NOW() WHERE id = ?");
             $stmt->execute([$message, $notice_id]);
-            $_SESSION['notice_success'] = "Notice updated successfully!";
+            if ($stmt->rowCount() === 0) {
+                $_SESSION['notice_error'] = "No notice found with the provided ID.";
+            } else {
+                $_SESSION['notice_success'] = "Notice updated successfully!";
+            }
         } catch (PDOException $e) {
             $_SESSION['notice_error'] = "Failed to update notice: " . $e->getMessage();
         }
@@ -812,7 +825,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             display: flex;
             gap: 0.5rem;
             margin-top: 1rem;
-            justify-content: flex spotting;
+            justify-content: flex-start;
         }
 
         .approve-btn,
@@ -1298,15 +1311,15 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                                         <p><strong>Message:</strong> <?php echo htmlspecialchars($notice['message']); ?></p>
                                         <p><strong>Sent On:</strong> <?php echo htmlspecialchars($notice['created_at']); ?></p>
                                         <div class="notice-actions">
-                                            <button class="edit-notice-btn" onclick="showEditNoticeForm('editNoticeForm-<?php echo $notice['id']; ?>')">Edit</button>
+                                            <button class="edit-notice-btn" onclick="showEditNoticeForm('editNoticeForm-<?php echo $notice['id']; ?>', '<?php echo $applicant['id']; ?>')">Edit</button>
                                             <button class="delete-notice-btn" onclick="deleteNotice('<?php echo $notice['id']; ?>')">Delete</button>
                                         </div>
                                     </div>
 
                                     <!-- Edit Notice Form (Hidden by Default) -->
-                                    <div class="form-section" id="editNoticeForm-<?php echo $notice['id']; ?>">
+                                    <div class="form-section" id="editNoticeForm-<?php echo $notice['id']; ?>" style="display: none;">
                                         <h3>Edit Notice</h3>
-                                        <form method="POST">
+                                        <form method="POST" action="admindashboard.php?view=all<?php echo !empty($search_query) ? '&search=' . urlencode($search_query) : ''; ?>">
                                             <input type="hidden" name="notice_id" value="<?php echo $notice['id']; ?>">
                                             <div class="form-row">
                                                 <div class="form-group">
@@ -1327,6 +1340,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                             <?php endif; ?>
                         </div>
 
+                        <!-- Modal Actions -->
                         <div class="modal-actions">
                             <button class="approve-btn" onclick="openScheduleModal('scheduleModal-<?php echo $applicant['id']; ?>')">Approve</button>
                             <button class="deny-btn" onclick="openDenialModal('denialModal-<?php echo $applicant['id']; ?>')">Deny</button>
@@ -1336,7 +1350,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                         <!-- Send Notice Form (Hidden by Default) -->
                         <div class="form-section" id="noticeForm-<?php echo $applicant['id']; ?>">
                             <h3>Send Notice to <?php echo htmlspecialchars($applicant['firstname'] . ' ' . $applicant['lastname']); ?></h3>
-                            <form method="POST">
+                            <form method="POST" action="admindashboard.php?view=all<?php echo !empty($search_query) ? '&search=' . urlencode($search_query) : ''; ?>">
                                 <input type="hidden" name="applicant_id" value="<?php echo $applicant['id']; ?>">
                                 <div class="form-row">
                                     <div class="form-group">
@@ -1361,7 +1375,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                     <div class="modal-content">
                         <span class="close-btn" onclick="closeScheduleModal('scheduleModal-<?php echo $applicant['id']; ?>')">×</span>
                         <h3>Schedule Meeting</h3>
-                        <form id="scheduleForm-<?php echo $applicant['id']; ?>" method="POST">
+                        <form id="scheduleForm-<?php echo $applicant['id']; ?>" method="POST" action="admindashboard.php?view=all<?php echo !empty($search_query) ? '&search=' . urlencode($search_query) : ''; ?>">
                             <input type="hidden" name="applicant_id" value="<?php echo $applicant['id']; ?>">
                             <input type="hidden" name="approve" value="1">
                             <div class="form-row">
@@ -1402,7 +1416,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                     <div class="modal-content">
                         <span class="close-btn" onclick="closeDenialModal('denialModal-<?php echo $applicant['id']; ?>')">×</span>
                         <h3>Deny Application</h3>
-                        <form id="denialForm-<?php echo $applicant['id']; ?>" method="POST">
+                        <form id="denialForm-<?php echo $applicant['id']; ?>" method="POST" action="admindashboard.php?view=all<?php echo !empty($search_query) ? '&search=' . urlencode($search_query) : ''; ?>">
                             <input type="hidden" name="applicant_id" value="<?php echo $applicant['id']; ?>">
                             <input type="hidden" name="deny" value="1">
                             <div class="form-row">
@@ -1538,9 +1552,9 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
 
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
-            hideNoticeForm('noticeForm-' + modalId.split('-')[1]);
-            const editForms = document.querySelectorAll(`[id^="editNoticeForm-"]`);
-            editForms.forEach(form => form.style.display = 'none');
+            const applicantId = modalId.split('-')[1];
+            hideNoticeForm('noticeForm-' + applicantId);
+            document.querySelectorAll(`[id^="editNoticeForm-"]`).forEach(form => form.style.display = 'none');
         }
 
         function openScheduleModal(modalId) {
@@ -1559,26 +1573,18 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             document.getElementById(modalId).style.display = 'none';
         }
 
-        function approveApplicant(applicantId) {
-            openScheduleModal('scheduleModal-' + applicantId);
-        }
-
-        function denyApplicant(applicantId) {
-            openDenialModal('denialModal-' + applicantId);
-        }
-
         function showNoticeForm(formId) {
             document.getElementById(formId).style.display = 'block';
+            document.querySelectorAll(`[id^="editNoticeForm-"]`).forEach(form => form.style.display = 'none');
         }
 
         function hideNoticeForm(formId) {
             document.getElementById(formId).style.display = 'none';
         }
 
-        function showEditNoticeForm(formId) {
-            const modalId = formId.split('-')[1].split('-')[0]; 
+        function showEditNoticeForm(formId, applicantId) {
             document.querySelectorAll(`[id^="editNoticeForm-"]`).forEach(form => form.style.display = 'none');
-            document.getElementById(`noticeForm-${modalId}`).style.display = 'none';
+            document.getElementById(`noticeForm-${applicantId}`).style.display = 'none';
             document.getElementById(formId).style.display = 'block';
         }
 
@@ -1590,6 +1596,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
             if (confirm('Are you sure you want to delete this notice?')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
+                form.action = 'admindashboard.php?view=all<?php echo !empty($search_query) ? '&search=' . urlencode($search_query) : ''; ?>';
                 form.style.display = 'none';
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -1612,8 +1619,7 @@ $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
                 if (event.target == modals[i]) {
                     modals[i].style.display = 'none';
                     const modalId = modals[i].id.split('-')[1];
-                    if (modals[i].id.includes('scheduleModal') || modals[i].id.includes('denialModal')) {  
-                    } else {
+                    if (!(modals[i].id.includes('scheduleModal') || modals[i].id.includes('denialModal'))) {
                         hideNoticeForm('noticeForm-' + modalId);
                         document.querySelectorAll(`[id^="editNoticeForm-"]`).forEach(form => form.style.display = 'none');
                     }
