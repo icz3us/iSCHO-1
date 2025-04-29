@@ -851,26 +851,67 @@ if ($is_application_open && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST
             margin-bottom: 1rem;
         }
 
+        .section.notices {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+
+        .notices h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+
         .notices ul {
             list-style: none;
+            padding: 0;
         }
 
         .notices ul li {
-            margin-bottom: 0.75rem;
-            color: var(--text-color);
-            font-size: 0.9rem;
+            background-color: var(--notice-bg);
+            border: 1px solid var(--notice-border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .notices ul li::before {
-            color: var(--primary-color);
-            font-weight: bold;
-            display: inline-block;
-            width: 1em;
-            margin-left: -1em;
+        .notices ul li:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
+        .notices ul li .notice-content {
+            font-size: 0.95rem;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .notices ul li .notice-date {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            font-style: italic;
+            align-self: flex-end;
+        }
+
+        .notices ul li.empty-notice {
+            background-color: transparent;
+            border: none;
+            padding: 0.5rem 0;
+            font-style: italic;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
 
         .notice-date {
             color: var(--text-muted);
@@ -1235,6 +1276,17 @@ if ($is_application_open && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST
             .file-name {
                 max-width: 150px;
             }
+            .notices ul li {
+                padding: 0.75rem;
+            }
+
+            .notices ul li .notice-content {
+                font-size: 0.9rem;
+            }
+
+            .notices ul li .notice-date {
+                font-size: 0.8rem;
+            }
         }
 
         @media (max-width: 576px) {
@@ -1306,6 +1358,17 @@ if ($is_application_open && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST
             .file-name {
                 max-width: 100px;
             }
+            .notices ul li {
+                padding: 0.5rem;
+            }
+
+            .notices ul li .notice-content {
+                font-size: 0.85rem;
+            }
+
+            .notices ul li .notice-date {
+                font-size: 0.75rem;
+            }
         }
     </style>
 </head>
@@ -1339,640 +1402,725 @@ if ($is_application_open && $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST
     </div>
 
     <!-- Main Content -->
-    <div class="main-content">
-        <!-- Dashboard Content -->
-        <div class="dashboard-content" id="dashboardContent">
-            <div class="header">
-                <h1>Dashboard</h1>
-                <div class="user-profile">
-                    <span><div><?php echo htmlspecialchars($lastname . ', ' . $firstname); ?></div></span>
-                    <div class="avatar" style="<?php echo !empty($user_docs['profile_picture_path']) ? 'background-image: url(\'' . htmlspecialchars($user_docs['profile_picture_path']) . '\'); background-size: cover; background-position: center;' : ''; ?>">
-                        <?php if (empty($user_docs['profile_picture_path'])): ?>
-                            <?php echo htmlspecialchars(substr($firstname, 0, 1)); ?>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <div class="welcome-text">
-                <h2>Welcome to the Student Dashboard</h2>
-                <p>Track your scholarship applications and stay updated with important notices.</p>
-            </div>
-
-            <!-- Success/Error Messages -->
-            <?php if (isset($_SESSION['profile_picture_success'])): ?>
-            <div class="success-message">
-                <?php echo $_SESSION['profile_picture_success']; unset($_SESSION['profile_picture_success']); ?>
-            </div>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['profile_picture_error'])): ?>
-            <div class="error-message">
-                <?php echo $_SESSION['profile_picture_error']; unset($_SESSION['profile_picture_error']); ?>
-            </div>
-            <?php endif; ?>
-
-            <?php if (isset($_SESSION['application_success'])): ?>
-            <div class="success-message">
-                <?php echo $_SESSION['application_success']; unset($_SESSION['application_success']); ?>
-            </div>
-            <?php endif; ?>
-            
-            <?php if (isset($_SESSION['application_error'])): ?>
-            <div class="error-message">
-                <?php echo $_SESSION['application_error']; unset($_SESSION['application_error']); ?>
-            </div>
-            <?php endif; ?>
-
-            <!-- Stats Section -->
-            <div class="stats">
-                <div class="stat-card">
-                    <i class="fas fa-file-alt"></i>
-                    <p>Application Status</p>
-                    <h3 class="<?php 
-                        echo $application_status === 'Not Yet Submitted' ? 'not-submitted' : 
-                        (strtolower($application_status) === 'approved' ? 'approved' : 
-                        (strtolower($application_status) === 'denied' ? 'denied' : 'review')); 
-                    ?>">
-                        <?php echo htmlspecialchars($application_status); ?>
-                    </h3>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-bell"></i>
-                    <h3><?php echo count($notices); ?></h3>
-                    <p>New Notices</p>
-                </div>
-            </div>
-
-            <!-- Important Notices Section -->
-            <div class="section notices">
-                <h2>Important Notices</h2>
-                <ul>
-                    <?php if (empty($notices)): ?>
-                        <li>No new notices available.</li>
-                    <?php else: ?>
-                        <?php foreach ($notices as $notice): ?>
-                            <li>
-                                <?php echo htmlspecialchars($notice['message']); ?>
-                                <span class="notice-date"><?php echo date('M d, Y', strtotime($notice['created_at'])); ?></span>
-                            </li>
-                        <?php endforeach; ?>
+<div class="main-content">
+    <!-- Dashboard Content -->
+    <div class="dashboard-content" id="dashboardContent">
+        <div class="header">
+            <h1>Dashboard</h1>
+            <div class="user-profile">
+                <span><div><?php echo htmlspecialchars($lastname . ', ' . $firstname); ?></div></span>
+                <div class="avatar" style="<?php echo !empty($user_docs['profile_picture_path']) ? 'background-image: url(\'' . htmlspecialchars($user_docs['profile_picture_path']) . '\'); background-size: cover; background-position: center;' : ''; ?>">
+                    <?php if (empty($user_docs['profile_picture_path'])): ?>
+                        <?php echo htmlspecialchars(substr($firstname, 0, 1)); ?>
                     <?php endif; ?>
-                </ul>
+                </div>
             </div>
         </div>
 
-        <!-- Application Form -->
-        <div class="application-form" id="applicationForm">
-            <div class="header">
-                <h1>Apply Scholarship</h1>
-                <div class="user-profile">
-                    <span><div><?php echo htmlspecialchars($lastname . ', ' . $firstname); ?></div></span>
-                    <div class="avatar" style="<?php echo !empty($user_docs['profile_picture_path']) ? 'background-image: url(\'' . htmlspecialchars($user_docs['profile_picture_path']) . '\'); background-size: cover; background-position: center;' : ''; ?>">
-                        <?php if (empty($user_docs['profile_picture_path'])): ?>
-                            <?php echo htmlspecialchars(substr($firstname, 0, 1)); ?>
+        <div class="welcome-text">
+            <h2>Welcome to the Student Dashboard</h2>
+            <p><b>Track your scholarship applications and stay updated with important notices.</b></p>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <?php if (isset($_SESSION['profile_picture_success'])): ?>
+        <div class="success-message">
+            <?php echo $_SESSION['profile_picture_success']; unset($_SESSION['profile_picture_success']); ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['profile_picture_error'])): ?>
+        <div class="error-message">
+            <?php echo $_SESSION['profile_picture_error']; unset($_SESSION['profile_picture_error']); ?>
+        </div>
+        <?php endif; ?>
+
+        <?php if (isset($_SESSION['application_success'])): ?>
+        <div class="success-message">
+            <?php echo $_SESSION['application_success']; unset($_SESSION['application_success']); ?>
+        </div>
+        <?php endif; ?>
+        
+        <?php if (isset($_SESSION['application_error'])): ?>
+        <div class="error-message">
+            <?php echo $_SESSION['application_error']; unset($_SESSION['application_error']); ?>
+        </div>
+        <?php endif; ?>
+
+        <!-- Stats Section -->
+        <div class="stats">
+            <div class="stat-card">
+                <i class="fas fa-file-alt"></i>
+                <p>Application Status</p>
+                <h3 class="<?php 
+                    echo $application_status === 'Not Yet Submitted' ? 'not-submitted' : 
+                    (strtolower($application_status) === 'approved' ? 'approved' : 
+                    (strtolower($application_status) === 'denied' ? 'denied' : 'review')); 
+                ?>">
+                    <?php echo htmlspecialchars($application_status); ?>
+                </h3>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-bell"></i>
+                <h3><?php echo count($notices); ?></h3>
+                <p>New Notices</p>
+            </div>
+        </div>
+
+        <!-- Important Notices Section -->
+        <div class="section notices">
+            <h2>Important Notices</h2>
+            <ul>
+                <?php if (empty($notices)): ?>
+                    <li class="empty-notice">No new notices available.</li>
+                <?php else: ?>
+                    <?php foreach ($notices as $notice): ?>
+                        <li>
+                            <div class="notice-content"><?php echo htmlspecialchars($notice['message']); ?></div>
+                            <span class="notice-date"><?php echo date('M d, Y', strtotime($notice['created_at'])); ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Application Form -->
+    <div class="application-form" id="applicationForm">
+        <div class="header">
+            <h1>Apply Scholarship</h1>
+            <div class="user-profile">
+                <span><div><?php echo htmlspecialchars($lastname . ', ' . $firstname); ?></div></span>
+                <div class="avatar" style="<?php echo !empty($user_docs['profile_picture_path']) ? 'background-image: url(\'' . htmlspecialchars($user_docs['profile_picture_path']) . '\'); background-size: cover; background-position: center;' : ''; ?>">
+                    <?php if (empty($user_docs['profile_picture_path'])): ?>
+                        <?php echo htmlspecialchars(substr($firstname, 0, 1)); ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Status Notices -->
+        <?php if (!$is_application_open): ?>
+        <div class="info-message">
+            The application period has ended on <?php echo htmlspecialchars($formatted_deadline); ?>. You can no longer submit or edit your application.
+        </div>
+        <?php elseif ($has_application && $application_status !== 'Not Yet Submitted'): ?>
+        <div class="info-message">
+            You have already submitted. You can edit your application until <?php echo htmlspecialchars($formatted_deadline); ?>.
+        </div>
+        <?php else: ?>
+        <div class="info-message">
+            Application is open until <?php echo htmlspecialchars($formatted_deadline); ?>. Please submit your application before the deadline.
+        </div>
+        <?php endif; ?>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-step active">
+                <div class="step-circle">1</div>
+                <div class="step-label">Personal Information</div>
+            </div>
+            <div class="progress-step">
+                <div class="step-circle">2</div>
+                <div class="step-label">Residency</div>
+            </div>
+            <div class="progress-step">
+                <div class="step-circle">3</div>
+                <div class="step-label">Family Background</div>
+            </div>
+            <div class="progress-step">
+                <div class="step-circle">4</div>
+                <div class="step-label">Documents</div>
+            </div>
+            <div class="progress-step">
+                <div class="step-circle">5</div>
+                <div class="step-label">Review</div>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <form id="applicationFormContent" method="POST" enctype="multipart/form-data">
+            <!-- Step 1: Personal Information -->
+            <div class="form-section" id="step1">
+                <h3>Personal Information</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="lastname">Lastname <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="lastname" name="lastname" class="form-control" value="<?php echo htmlspecialchars($lastname); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="firstname">Firstname <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="firstname" name="firstname" class="form-control" value="<?php echo htmlspecialchars($firstname); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="middlename">Middlename (N/A if None) <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="middlename" name="middlename" class="form-control" value="<?php echo htmlspecialchars($middlename); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sex">Sex <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-venus-mars"></i>
+                            <select id="Sex" name="Sex" class="form-control" required style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <option value="">Choose</option>
+                                <option value="male" <?php echo (isset($users_info['sex']) && $users_info['sex'] === 'male') ? 'selected' : ''; ?>>Male</option>
+                                <option value="female" <?php echo (isset($users_info['sex']) && $users_info['sex'] === 'female') ? 'selected' : ''; ?>>Female</option>
+                                <option value="other" <?php echo (isset($users_info['sex']) && $users_info['sex'] === 'other') ? 'selected' : ''; ?>>Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="civil-status">Civil Status <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-heart"></i>
+                            <select id="Civil-Status" name="Civil-Status" class="form-control" required style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <option value="">Choose</option>
+                                <option value="single" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'single') ? 'selected' : ''; ?>>Single</option>
+                                <option value="married" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'married') ? 'selected' : ''; ?>>Married</option>
+                                <option value="divorced" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'divorced') ? 'selected' : ''; ?>>Divorced</option>
+                                <option value="widowed" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'widowed') ? 'selected' : ''; ?>>Widowed</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="birthdate">Birthdate <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-calendar-alt"></i>
+                            <input type="date" id="birthdate" name="birthdate" class="form-control" value="<?php echo htmlspecialchars($users_info['birthdate'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="municipality">Municipality <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-map"></i>
+                            <input type="text" id="municipality" name="municipality" class="form-control" value="<?php echo htmlspecialchars($users_info['municipality'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="barangay">Barangay <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-map-marker"></i>
+                            <input type="text" id="barangay" name="barangay" class="form-control" value="<?php echo htmlspecialchars($users_info['barangay'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nationality">Nationality <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-flag"></i>
+                            <input type="text" id="nationality" name="nationality" class="form-control" value="<?php echo htmlspecialchars($users_info['nationality'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="place_of_birth">Place of Birth <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-map-pin"></i>
+                            <input type="text" id="place_of_birth" name="place_of_birth" class="form-control" value="<?php echo htmlspecialchars($users_info['place_of_birth'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="track">Degree <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-graduation-cap"></i>
+                            <select id="track" name="track" class="form-control" required style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <option value="">Choose</option>
+                                <option value="Bachelor of Science" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Science') ? 'selected' : ''; ?>>Bachelor of Science</option>
+                                <option value="Bachelor of Arts" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Arts') ? 'selected' : ''; ?>>Bachelor of Arts</option>
+                                <option value="Bachelor of Fine Arts" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Fine Arts') ? 'selected' : ''; ?>>Bachelor of Fine Arts</option>
+                                <option value="Bachelor of Business Administration" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Business Administration') ? 'selected' : ''; ?>>Bachelor of Business Administration</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="Course">Course <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-book"></i>
+                            <input type="text" id="Course" name="Course" class="form-control" value="<?php echo htmlspecialchars($user_personal['course'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="secondary-school">Current College/University <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-school"></i>
+                            <input type="text" id="secondary-school" name="secondary_school" class="form-control" value="<?php echo htmlspecialchars($user_personal['current_college'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="next-btn" onclick="nextStep(1)">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 2: Residency -->
+            <div class="form-section" id="step2" style="display: none;">
+                <h3>Residency</h3>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="permanent-address">Permanent Address <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <input type="text" id="permanent-address" name="permanent_address" class="form-control" value="<?php echo htmlspecialchars($user_residency['permanent_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="residency-duration">No. of Months/Years of Residency <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-clock"></i>
+                            <input type="text" id="residency-duration" name="residency_duration" class="form-control" value="<?php echo htmlspecialchars($user_residency['residency_duration'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Are you and your parents a registered voter? <span class="required">*</span></label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="registered_voter" value="yes" <?php echo (isset($user_residency['registered_voter']) && $user_residency['registered_voter'] === 'yes') ? 'checked' : ''; ?> required <?php echo !$is_application_open ? 'disabled' : ''; ?>> Yes</label>
+                            <label><input type="radio" name="registered_voter" value="no" <?php echo (isset($user_residency['registered_voter']) && $user_residency['registered_voter'] === 'no') ? 'checked' : ''; ?> <?php echo !$is_application_open ? 'disabled' : ''; ?>> No</label>
+                            <label><input type="radio" name="registered_voter" value="guardian" <?php echo (isset($user_residency['registered_voter']) && $user_residency['registered_voter'] === 'guardian') ? 'checked' : ''; ?> <?php echo !$is_application_open ? 'disabled' : ''; ?>> Guardian Only</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <h4 for="residency-length">If Yes, How Long?</h4>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="father_voting_duration">Father</label>
+                        <div class="input-group">
+                            <i class="fas fa-clock"></i>
+                            <select id="father_voting_duration" name="father_voting_duration" class="form-control" style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <option value="">Choose</option>
+                                <option value="1" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '1') ? 'selected' : ''; ?>>1</option>
+                                <option value="2" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '2') ? 'selected' : ''; ?>>2</option>
+                                <option value="3" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '3') ? 'selected' : ''; ?>>3</option>
+                                <option value="4" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '4') ? 'selected' : ''; ?>>4</option>
+                                <option value="5" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '5') ? 'selected' : ''; ?>>5</option>
+                                <option value="6" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '6') ? 'selected' : ''; ?>>6</option>
+                                <option value="7" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '7') ? 'selected' : ''; ?>>7</option>
+                                <option value="8" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '8') ? 'selected' : ''; ?>>8</option>
+                                <option value="9" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '9') ? 'selected' : ''; ?>>9</option>
+                                <option value="10+" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '10+') ? 'selected' : ''; ?>>10+</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="mother_voting_duration">Mother</label>
+                        <div class="input-group">
+                            <i class="fas fa-clock"></i>
+                            <select id="mother_voting_duration" name="mother_voting_duration" class="form-control" style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <option value="">Choose</option>
+                                <option value="1" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '1') ? 'selected' : ''; ?>>1</option>
+                                <option value="2" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '2') ? 'selected' : ''; ?>>2</option>
+                                <option value="3" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '3') ? 'selected' : ''; ?>>3</option>
+                                <option value="4" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '4') ? 'selected' : ''; ?>>4</option>
+                                <option value="5" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '5') ? 'selected' : ''; ?>>5</option>
+                                <option value="6" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '6') ? 'selected' : ''; ?>>6</option>
+                                <option value="7" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '7') ? 'selected' : ''; ?>>7</option>
+                                <option value="8" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '8') ? 'selected' : ''; ?>>8</option>
+                                <option value="9" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '9') ? 'selected' : ''; ?>>9</option>
+                                <option value="10+" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '10+') ? 'selected' : ''; ?>>10+</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="applicant_voting_duration">Applicant</label>
+                        <div class="input-group">
+                            <i class="fas fa-clock"></i>
+                            <select id="applicant_voting_duration" name="applicant_voting_duration" class="form-control" style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <option value="">Choose</option>
+                                <option value="1" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '1') ? 'selected' : ''; ?>>1</option>
+                                <option value="2" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '2') ? 'selected' : ''; ?>>2</option>
+                                <option value="3" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '3') ? 'selected' : ''; ?>>3</option>
+                                <option value="4" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '4') ? 'selected' : ''; ?>>4</option>
+                                <option value="5" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '5') ? 'selected' : ''; ?>>5</option>
+                                <option value="6" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '6') ? 'selected' : ''; ?>>6</option>
+                                <option value="7" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '7') ? 'selected' : ''; ?>>7</option>
+                                <option value="8" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '8') ? 'selected' : ''; ?>>8</option>
+                                <option value="9" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '9') ? 'selected' : ''; ?>>9</option>
+                                <option value="10+" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '10+') ? 'selected' : ''; ?>>10+</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <h4>Guardian Information</h4>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="guardian_name">Name <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="guardian_name" name="guardian_name" class="form-control" value="<?php echo htmlspecialchars($user_residency['guardian_name'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="relationship">Relationship <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-users"></i>
+                            <input type="text" id="relationship" name="relationship" class="form-control" value="<?php echo htmlspecialchars($user_residency['relationship'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="guardian_address">Address <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <input type="text" id="guardian_address" name="guardian_address" class="form-control" value="<?php echo htmlspecialchars($user_residency['guardian_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="guardian_contact">Contact Number <span class="required">*</span></label>
+                        <div class="input-group">
+                            <i class="fas fa-phone"></i>
+                            <input type="tel" id="guardian_contact" name="guardian_contact" class="form-control" value="<?php echo htmlspecialchars($user_residency['guardian_contact'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="prev-btn" onclick="prevStep(2)">Previous</button>
+                    <button type="button" class="next-btn" onclick="nextStep(2)">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Family Background -->
+            <div class="form-section" id="step3" style="display: none;">
+                <h3>Family Background</h3>
+                <div class="family-background">
+                    <div class="family-member">
+                        <h4>Father</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="father_name">Name <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-user"></i>
+                                    <input type="text" id="father_name" name="father_name" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_name'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="father_address">Address <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <input type="text" id="father_address" name="father_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="father_contact">Contact Number <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-phone"></i>
+                                    <input type="tel" id="father_contact" name="father_contact" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_contact'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="father_occupation">Occupation <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-briefcase"></i>
+                                    <input type="text" id="father_occupation" name="father_occupation" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_occupation'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="father_office_address">Office Address <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-building"></i>
+                                    <input type="text" id="father_office_address" name="father_office_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_office_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="father_tel_no">Tel No. <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-phone"></i>
+                                    <input type="tel" id="father_tel_no" name="father_tel_no" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_tel_no'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="father_age">Age <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-birthday-cake"></i>
+                                    <input type="number" id="father_age" name="father_age" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_age'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="father_dob">Date of Birth <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <input type="date" id="father_dob" name="father_dob" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_dob'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="father_citizenship">Citizenship <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-flag"></i>
+                                    <input type="text" id="father_citizenship" name="father_citizenship" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_citizenship'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="father_religion">Religion <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-church"></i>
+                                    <input type="text" id="father_religion" name="father_religion" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_religion'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="family-member">
+                        <h4>Mother</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mother_name">Name <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-user"></i>
+                                    <input type="text" id="mother_name" name="mother_name" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_name'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mother_address">Address <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <input type="text" id="mother_address" name="mother_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mother_contact">Contact Number <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-phone"></i>
+                                    <input type="tel" id="mother_contact" name="mother_contact" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_contact'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="mother_occupation">Occupation <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-briefcase"></i>
+                                    <input type="text" id="mother_occupation" name="mother_occupation" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_occupation'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mother_office_address">Office Address <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-building"></i>
+                                    <input type="text" id="mother_office_address" name="mother_office_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_office_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="mother_tel_no">Tel No. <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-phone"></i>
+                                    <input type="tel" id="mother_tel_no" name="mother_tel_no" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_tel_no'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mother_age">Age <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-birthday-cake"></i>
+                                    <input type="number" id="mother_age" name="mother_age" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_age'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="mother_dob">Date of Birth <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <input type="date" id="mother_dob" name="mother_dob" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_dob'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="mother_citizenship">Citizenship <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-flag"></i>
+                                    <input type="text" id="mother_citizenship" name="mother_citizenship" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_citizenship'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="mother_religion">Religion <span class="required">*</span></label>
+                                <div class="input-group">
+                                    <i class="fas fa-church"></i>
+                                    <input type="text" id="mother_religion" name="mother_religion" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_religion'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="prev-btn" onclick="prevStep(3)">Previous</button>
+                    <button type="button" class="next-btn" onclick="nextStep(3)">Next</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Documents -->
+            <div class="form-section" id="step4" style="display: none;">
+                <h3>Documents</h3>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="cor_file">Certificate of Registration (COR) <span class="required">*</span></label>
+                        <div class="file-upload-group">
+                            <input type="file" id="cor_file" name="cor_file" accept=".pdf,.png,.jpg,.jpeg" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                            <label for="cor_file" class="file-upload-label" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <i class="fas fa-upload"></i> Choose File
+                            </label>
+                            <span class="file-name"><?php echo !empty($user_docs['cor_file_path']) ? basename($user_docs['cor_file_path']) : 'No file chosen'; ?></span>
+                        </div>
+                        <?php if (isset($_SESSION['application_error']) && strpos($_SESSION['application_error'], 'cor_file') !== false): ?>
+                            <div class="file-error"><?php echo $_SESSION['application_error']; ?></div>
                         <?php endif; ?>
                     </div>
                 </div>
-            </div>
-
-            <!-- Application Status Notices -->
-            <?php if (!$is_application_open): ?>
-            <div class="info-message">
-                The application period has ended on <?php echo htmlspecialchars($formatted_deadline); ?>. You can no longer submit or edit your application.
-            </div>
-            <?php elseif ($has_application && $application_status !== 'Not Yet Submitted'): ?>
-            <div class="info-message">
-                You have already submitted. You can edit your application until <?php echo htmlspecialchars($formatted_deadline); ?>.
-            </div>
-            <?php else: ?>
-            <div class="info-message">
-                Application is open until <?php echo htmlspecialchars($formatted_deadline); ?>. Please submit your application before the deadline.
-            </div>
-            <?php endif; ?>
-
-            <!-- Progress Bar -->
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-step active">
-                    <div class="step-circle">1</div>
-                    <div class="step-label">Personal Information</div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="indigency_file">Certificate of Indigency <span class="required">*</span></label>
+                        <div class="file-upload-group">
+                            <input type="file" id="indigency_file" name="indigency_file" accept=".pdf,.png,.jpg,.jpeg" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                            <label for="indigency_file" class="file-upload-label" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <i class="fas fa-upload"></i> Choose File
+                            </label>
+                            <span class="file-name"><?php echo !empty($user_docs['indigency_file_path']) ? basename($user_docs['indigency_file_path']) : 'No file chosen'; ?></span>
+                        </div>
+                        <?php if (isset($_SESSION['application_error']) && strpos($_SESSION['application_error'], 'indigency_file') !== false): ?>
+                            <div class="file-error"><?php echo $_SESSION['application_error']; ?></div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-                <div class="progress-step">
-                    <div class="step-circle">2</div>
-                    <div class="step-label">Residency</div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="voter_file">Voter's Certificate <span class="required">*</span></label>
+                        <div class="file-upload-group">
+                            <input type="file" id="voter_file" name="voter_file" accept=".pdf,.png,.jpg,.jpeg" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                            <label for="voter_file" class="file-upload-label" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
+                                <i class="fas fa-upload"></i> Choose File
+                            </label>
+                            <span class="file-name"><?php echo !empty($user_docs['voter_file_path']) ? basename($user_docs['voter_file_path']) : 'No file chosen'; ?></span>
+                        </div>
+                        <?php if (isset($_SESSION['application_error']) && strpos($_SESSION['application_error'], 'voter_file') !== false): ?>
+                            <div class="file-error"><?php echo $_SESSION['application_error']; ?></div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-                <div class="progress-step">
-                    <div class="step-circle">3</div>
-                    <div class="step-label">Family Background</div>
-                </div>
-                <div class="progress-step">
-                    <div class="step-circle">4</div>
-                    <div class="step-label">Documents</div>
-                </div>
-                <div class="progress-step">
-                    <div class="step-circle">5</div>
-                    <div class="step-label">Review</div>
+                <div class="form-buttons">
+                    <button type="button" class="prev-btn" onclick="prevStep(4)">Previous</button>
+                    <button type="button" class="next-btn" onclick="nextStep(4)">Next</button>
                 </div>
             </div>
 
-            <!-- Form Section -->
-            <form id="applicationFormContent" method="POST" enctype="multipart/form-data">
-                <div class="form-section" id="step1">
-                    <h3>Personal Information</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="lastname">Lastname <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-user"></i>
-                                <input type="text" id="lastname" name="lastname" class="form-control" value="<?php echo htmlspecialchars($lastname); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="firstname">Firstname <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-user"></i>
-                                <input type="text" id="firstname" name="firstname" class="form-control" value="<?php echo htmlspecialchars($firstname); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="middlename">Middlename (N/A if None) <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-user"></i>
-                                <input type="text" id="middlename" name="middlename" class="form-control" value="<?php echo htmlspecialchars($middlename); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="sex">Sex <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-venus-mars"></i>
-                                <select id="Sex" name="Sex" class="form-control" required style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                                    <option value="">Choose</option>
-                                    <option value="male" <?php echo (isset($users_info['sex']) && $users_info['sex'] === 'male') ? 'selected' : ''; ?>>Male</option>
-                                    <option value="female" <?php echo (isset($users_info['sex']) && $users_info['sex'] === 'female') ? 'selected' : ''; ?>>Female</option>
-                                    <option value="other" <?php echo (isset($users_info['sex']) && $users_info['sex'] === 'other') ? 'selected' : ''; ?>>Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="civil-status">Civil Status <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-heart"></i>
-                                <select id="Civil-Status" name="Civil-Status" class="form-control" required style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                                    <option value="">Choose</option>
-                                    <option value="single" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'single') ? 'selected' : ''; ?>>Single</option>
-                                    <option value="married" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'married') ? 'selected' : ''; ?>>Married</option>
-                                    <option value="divorced" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'divorced') ? 'selected' : ''; ?>>Divorced</option>
-                                    <option value="widowed" <?php echo (isset($users_info['civil_status']) && $users_info['civil_status'] === 'widowed') ? 'selected' : ''; ?>>Widowed</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="birthdate">Birthdate <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-calendar-alt"></i>
-                                <input type="date" id="birthdate" name="birthdate" class="form-control" value="<?php echo htmlspecialchars($users_info['birthdate'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="municipality">Municipality <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-map"></i>
-                                <input type="text" id="municipality" name="municipality" class="form-control" value="<?php echo htmlspecialchars($users_info['municipality'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="barangay">Barangay <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-map-marker"></i>
-                                <input type="text" id="barangay" name="barangay" class="form-control" value="<?php echo htmlspecialchars($users_info['barangay'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="nationality">Nationality <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-flag"></i>
-                                <input type="text" id="nationality" name="nationality" class="form-control" value="<?php echo htmlspecialchars($users_info['nationality'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="place_of_birth">Place of Birth <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-map-pin"></i>
-                                <input type="text" id="place_of_birth" name="place_of_birth" class="form-control" value="<?php echo htmlspecialchars($users_info['place_of_birth'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="track">Degree <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-graduation-cap"></i>
-                                <select id="track" name="track" class="form-control" required style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                                    <option value="">Choose</option>
-                                    <option value="Bachelor of Science" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Science') ? 'selected' : ''; ?>>Bachelor of Science</option>
-                                    <option value="Bachelor of Arts" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Arts') ? 'selected' : ''; ?>>Bachelor of Arts</option>
-                                    <option value="Bachelor of Fine Arts" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Fine Arts') ? 'selected' : ''; ?>>Bachelor of Fine Arts</option>
-                                    <option value="Bachelor of Business Administration" <?php echo (isset($user_personal['degree']) && $user_personal['degree'] === 'Bachelor of Business Administration') ? 'selected' : ''; ?>>Bachelor of Business Administration</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="Course">Course <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-book"></i>
-                                <input type="text" id="Course" name="Course" class="form-control" value="<?php echo htmlspecialchars($user_personal['course'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="secondary-school">Current College/University <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-school"></i>
-                                <input type="text" id="secondary-school" name="secondary_school" class="form-control" value="<?php echo htmlspecialchars($user_personal['current_college'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-buttons">
-                        <button type="button" class="next-btn" onclick="nextStep(1)">Next</button>
+            <!-- Step 5: Review and Submit -->
+            <div class="form-section" id="step5" style="display: none;">
+                <h3>Review and Submit</h3>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <h4>Personal Information</h4>
+                        <p><strong>Lastname:</strong> <span id="review_lastname"><?php echo htmlspecialchars($lastname); ?></span></p>
+                        <p><strong>Firstname:</strong> <span id="review_firstname"><?php echo htmlspecialchars($firstname); ?></span></p>
+                        <p><strong>Middlename:</strong> <span id="review_middlename"><?php echo htmlspecialchars($middlename); ?></span></p>
+                        <p><strong>Sex:</strong> <span id="review_sex"><?php echo htmlspecialchars($users_info['sex'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Civil Status:</strong> <span id="review_civil_status"><?php echo htmlspecialchars($users_info['civil_status'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Birthdate:</strong> <span id="review_birthdate"><?php echo htmlspecialchars($users_info['birthdate'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Municipality:</strong> <span id="review_municipality"><?php echo htmlspecialchars($users_info['municipality'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Barangay:</strong> <span id="review_barangay"><?php echo htmlspecialchars($users_info['barangay'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Nationality:</strong> <span id="review_nationality"><?php echo htmlspecialchars($users_info['nationality'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Place of Birth:</strong> <span id="review_place_of_birth"><?php echo htmlspecialchars($users_info['place_of_birth'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Degree:</strong> <span id="review_degree"><?php echo htmlspecialchars($user_personal['degree'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Course:</strong> <span id="review_course"><?php echo htmlspecialchars($user_personal['course'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Current College:</strong> <span id="review_current_college"><?php echo htmlspecialchars($user_personal['current_college'] ?? 'Not provided'); ?></span></p>
                     </div>
                 </div>
-
-                <div class="form-section" id="step2" style="display: none;">
-                    <h3>Residency</h3>
-                    <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="permanent-address">Permanent Address <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <input type="text" id="permanent-address" name="permanent_address" class="form-control" value="<?php echo htmlspecialchars($user_residency['permanent_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <h4>Residency</h4>
+                        <p><strong>Permanent Address:</strong> <span id="review_permanent_address"><?php echo htmlspecialchars($user_residency['permanent_address'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Residency Duration:</strong> <span id="review_residency_duration"><?php echo htmlspecialchars($user_residency['residency_duration'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Registered Voter:</strong> <span id="review_registered_voter"><?php echo htmlspecialchars($user_residency['registered_voter'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Father Voting Duration:</strong> <span id="review_father_voting_duration"><?php echo htmlspecialchars($user_residency['father_voting_duration'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Mother Voting Duration:</strong> <span id="review_mother_voting_duration"><?php echo htmlspecialchars($user_residency['mother_voting_duration'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Applicant Voting Duration:</strong> <span id="review_applicant_voting_duration"><?php echo htmlspecialchars($user_residency['applicant_voting_duration'] ?? 'Not provided'); ?></span></p>
+                        <h5>Guardian Information</h5>
+                        <p><strong>Name:</strong> <span id="review_guardian_name"><?php echo htmlspecialchars($user_residency['guardian_name'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Relationship:</strong> <span id="review_relationship"><?php echo htmlspecialchars($user_residency['relationship'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Address:</strong> <span id="review_guardian_address"><?php echo htmlspecialchars($user_residency['guardian_address'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Contact Number:</strong> <span id="review_guardian_contact"><?php echo htmlspecialchars($user_residency['guardian_contact'] ?? 'Not provided'); ?></span></p>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="residency-duration">No. of Months/Years of Residency <span class="required">*</span></label>
-                            <div class="input-group">
-                                <i class="fas fa-clock"></i>
-                                <input type="text" id="residency-duration" name="residency_duration" class="form-control" value="<?php echo htmlspecialchars($user_residency['residency_duration'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                            </div>
-                        </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <h4>Family Background</h4>
+                        <h5>Father</h5>
+                        <p><strong>Name:</strong> <span id="review_father_name"><?php echo htmlspecialchars($user_fam['father_name'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Address:</strong> <span id="review_father_address"><?php echo htmlspecialchars($user_fam['father_address'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Contact Number:</strong> <span id="review_father_contact"><?php echo htmlspecialchars($user_fam['father_contact'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Occupation:</strong> <span id="review_father_occupation"><?php echo htmlspecialchars($user_fam['father_occupation'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Office Address:</strong> <span id="review_father_office_address"><?php echo htmlspecialchars($user_fam['father_office_address'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Tel No.:</strong> <span id="review_father_tel_no"><?php echo htmlspecialchars($user_fam['father_tel_no'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Age:</strong> <span id="review_father_age"><?php echo htmlspecialchars($user_fam['father_age'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Date of Birth:</strong> <span id="review_father_dob"><?php echo htmlspecialchars($user_fam['father_dob'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Citizenship:</strong> <span id="review_father_citizenship"><?php echo htmlspecialchars($user_fam['father_citizenship'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Religion:</strong> <span id="review_father_religion"><?php echo htmlspecialchars($user_fam['father_religion'] ?? 'Not provided'); ?></span></p>
+                        <h5>Mother</h5>
+                        <p><strong>Name:</strong> <span id="review_mother_name"><?php echo htmlspecialchars($user_fam['mother_name'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Address:</strong> <span id="review_mother_address"><?php echo htmlspecialchars($user_fam['mother_address'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Contact Number:</strong> <span id="review_mother_contact"><?php echo htmlspecialchars($user_fam['mother_contact'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Occupation:</strong> <span id="review_mother_occupation"><?php echo htmlspecialchars($user_fam['mother_occupation'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Office Address:</strong> <span id="review_mother_office_address"><?php echo htmlspecialchars($user_fam['mother_office_address'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Tel No.:</strong> <span id="review_mother_tel_no"><?php echo htmlspecialchars($user_fam['mother_tel_no'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Age:</strong> <span id="review_mother_age"><?php echo htmlspecialchars($user_fam['mother_age'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Date of Birth:</strong> <span id="review_mother_dob"><?php echo htmlspecialchars($user_fam['mother_dob'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Citizenship:</strong> <span id="review_mother_citizenship"><?php echo htmlspecialchars($user_fam['mother_citizenship'] ?? 'Not provided'); ?></span></p>
+                        <p><strong>Religion:</strong> <span id="review_mother_religion"><?php echo htmlspecialchars($user_fam['mother_religion'] ?? 'Not provided'); ?></span></p>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Are you and your parents a registered voter? <span class="required">*</span></label>
-                            <div class="radio-group">
-                                <label><input type="radio" name="registered_voter" value="yes" <?php echo (isset($user_residency['registered_voter']) && $user_residency['registered_voter'] === 'yes') ? 'checked' : ''; ?> required <?php echo !$is_application_open ? 'disabled' : ''; ?>> Yes</label>
-                                <label><input type="radio" name="registered_voter" value="no" <?php echo (isset($user_residency['registered_voter']) && $user_residency['registered_voter'] === 'no') ? 'checked' : ''; ?> <?php echo !$is_application_open ? 'disabled' : ''; ?>> No</label>
-                                <label><input type="radio" name="registered_voter" value="guardian" <?php echo (isset($user_residency['registered_voter']) && $user_residency['registered_voter'] === 'guardian') ? 'checked' : ''; ?> <?php echo !$is_application_open ? 'disabled' : ''; ?>> Guardian Only</label>
-                            </div>
-                        </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <h4>Documents</h4>
+                        <p><strong>Certificate of Registration:</strong> <span id="review_cor_file"><?php echo !empty($user_docs['cor_file_path']) ? htmlspecialchars(basename($user_docs['cor_file_path'])) : 'Not uploaded'; ?></span></p>
+                        <p><strong>Certificate of Indigency:</strong> <span id="review_indigency_file"><?php echo !empty($user_docs['indigency_file_path']) ? htmlspecialchars(basename($user_docs['indigency_file_path'])) : 'Not uploaded'; ?></span></p>
+                        <p><strong>Voter's Certificate:</strong> <span id="review_voter_file"><?php echo !empty($user_docs['voter_file_path']) ? htmlspecialchars(basename($user_docs['voter_file_path'])) : 'Not uploaded'; ?></span></p>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <h4 for="residency-length">If Yes, How Long?</h4>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="father_voting_duration">Father</label>
-                            <div class="input-group">
-                                <i class="fas fa-clock"></i>
-                                <select id="father_voting_duration" name="father_voting_duration" class="form-control" style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                                    <option value="">Choose</option>
-                                    <option value="1" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '1') ? 'selected' : ''; ?>>1</option>
-                                    <option value="2" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '2') ? 'selected' : ''; ?>>2</option>
-                                    <option value="3" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '3') ? 'selected' : ''; ?>>3</option>
-                                    <option value="4" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '4') ? 'selected' : ''; ?>>4</option>
-                                    <option value="5" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '5') ? 'selected' : ''; ?>>5</option>
-                                    <option value="6" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '6') ? 'selected' : ''; ?>>6</option>
-                                    <option value="7" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '7') ? 'selected' : ''; ?>>7</option>
-                                    <option value="8" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '8') ? 'selected' : ''; ?>>8</option>
-                                    <option value="9" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '9') ? 'selected' : ''; ?>>9</option>
-                                    <option value="10+" <?php echo (isset($user_residency['father_voting_duration']) && $user_residency['father_voting_duration'] === '10+') ? 'selected' : ''; ?>>10+</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="mother_voting_duration">Mother</label>
-                            <div class="input-group">
-                                <i class="fas fa-clock"></i>
-                                <select id="mother_voting_duration" name="mother_voting_duration" class="form-control" style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                                    <option value="">Choose</option>
-                                    <option value="1" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '1') ? 'selected' : ''; ?>>1</option>
-                                    <option value="2" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '2') ? 'selected' : ''; ?>>2</option>
-                                    <option value="3" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '3') ? 'selected' : ''; ?>>3</option>
-                                    <option value="4" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '4') ? 'selected' : ''; ?>>4</option>
-                                    <option value="5" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '5') ? 'selected' : ''; ?>>5</option>
-                                    <option value="6" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '6') ? 'selected' : ''; ?>>6</option>
-                                    <option value="7" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '7') ? 'selected' : ''; ?>>7</option>
-                                    <option value="8" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '8') ? 'selected' : ''; ?>>8</option>
-                                    <option value="9" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '9') ? 'selected' : ''; ?>>9</option>
-                                    <option value="10+" <?php echo (isset($user_residency['mother_voting_duration']) && $user_residency['mother_voting_duration'] === '10+') ? 'selected' : ''; ?>>10+</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="applicant_voting_duration">Applicant</label>
-                            <div class="input-group">
-                                <i class="fas fa-clock"></i>
-                                <select id="applicant_voting_duration" name="applicant_voting_duration" class="form-control" style="padding-left: 2.5rem;" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                                    <option value="">Choose</option>
-                                    <option value="1" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '1') ? 'selected' : ''; ?>>1</option>
-                                    <option value="2" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '2') ? 'selected' : ''; ?>>2</option>
-                                    <option value="3" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '3') ? 'selected' : ''; ?>>3</option>
-                                    <option value="4" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '4') ? 'selected' : ''; ?>>4</option>
-                                    <option value="5" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '5') ? 'selected' : ''; ?>>5</option>
-                                    <option value="6" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '6') ? 'selected' : ''; ?>>6</option>
-                                    <option value="7" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '7') ? 'selected' : ''; ?>>7</option>
-                                    <option value="8" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '8') ? 'selected' : ''; ?>>8</option>
-                    <option value="9" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '9') ? 'selected' : ''; ?>>9</option>
-                    <option value="10+" <?php echo (isset($user_residency['applicant_voting_duration']) && $user_residency['applicant_voting_duration'] === '10+') ? 'selected' : ''; ?>>10+</option>
-                </select>
-            </div>
-        </div>
-    </div>
-    <div class="form-row">
-        <div class="form-group">
-            <h4>Guardian Information</h4>
-        </div>
-    </div>
-    <div class="form-row">
-        <div class="form-group">
-            <label for="guardian_name">Name <span class="required">*</span></label>
-            <div class="input-group">
-                <i class="fas fa-user"></i>
-                <input type="text" id="guardian_name" name="guardian_name" class="form-control" value="<?php echo htmlspecialchars($user_residency['guardian_name'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-            </div>
-        </div>
-        <div class="form-group">
-            <label for="relationship">Relationship <span class="required">*</span></label>
-            <div class="input-group">
-                <i class="fas fa-users"></i>
-                <input type="text" id="relationship" name="relationship" class="form-control" value="<?php echo htmlspecialchars($user_residency['relationship'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-            </div>
-        </div>
-    </div>
-    <div class="form-row">
-        <div class="form-group full-width">
-            <label for="guardian_address">Address <span class="required">*</span></label>
-            <div class="input-group">
-                <i class="fas fa-map-marker-alt"></i>
-                <input type="text" id="guardian_address" name="guardian_address" class="form-control" value="<?php echo htmlspecialchars($user_residency['guardian_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-            </div>
-        </div>
-    </div>
-    <div class="form-row">
-        <div class="form-group">
-            <label for="guardian_contact">Contact Number <span class="required">*</span></label>
-            <div class="input-group">
-                <i class="fas fa-phone"></i>
-                <input type="tel" id="guardian_contact" name="guardian_contact" class="form-control" value="<?php echo htmlspecialchars($user_residency['guardian_contact'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-            </div>
-        </div>
-    </div>
-    <div class="form-buttons">
-        <button type="button" class="prev-btn" onclick="prevStep(2)">Previous</button>
-        <button type="button" class="next-btn" onclick="nextStep(2)">Next</button>
-    </div>
-</div>
-
-<div class="form-section" id="step3" style="display: none;">
-    <h3>Family Background</h3>
-    <div class="family-background">
-        <div class="family-member">
-            <h4>Father</h4>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="father_name">Name <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-user"></i>
-                        <input type="text" id="father_name" name="father_name" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_name'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
+                </div>
+                <div class="form-buttons">
+                    <button type="button" class="prev-btn" onclick="prevStep(5)">Previous</button>
+                    <button type="submit" name="submit_application" class="submit-btn" <?php echo !$is_application_open ? 'disabled' : ''; ?>>Submit Application</button>
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="father_address">Address <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <input type="text" id="father_address" name="father_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="father_contact">Contact Number <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-phone"></i>
-                        <input type="tel" id="father_contact" name="father_contact" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_contact'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="father_occupation">Occupation <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-briefcase"></i>
-                        <input type="text" id="father_occupation" name="father_occupation" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_occupation'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="father_office_address">Office Address <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-building"></i>
-                        <input type="text" id="father_office_address" name="father_office_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_office_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="father_tel_no">Tel No. <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-phone"></i>
-                        <input type="tel" id="father_tel_no" name="father_tel_no" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_tel_no'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="father_age">Age <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-birthday-cake"></i>
-                        <input type="number" id="father_age" name="father_age" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_age'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="father_dob">Date of Birth <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-calendar-alt"></i>
-                        <input type="date" id="father_dob" name="father_dob" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_dob'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="father_citizenship">Citizenship <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-flag"></i>
-                        <input type="text" id="father_citizenship" name="father_citizenship" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_citizenship'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="father_religion">Religion <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-church"></i>
-                        <input type="text" id="father_religion" name="father_religion" class="form-control" value="<?php echo htmlspecialchars($user_fam['father_religion'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="family-member">
-            <h4>Mother</h4>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="mother_name">Name <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-user"></i>
-                        <input type="text" id="mother_name" name="mother_name" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_name'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="mother_address">Address <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <input type="text" id="mother_address" name="mother_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="mother_contact">Contact Number <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-phone"></i>
-                        <input type="tel" id="mother_contact" name="mother_contact" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_contact'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="mother_occupation">Occupation <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-briefcase"></i>
-                        <input type="text" id="mother_occupation" name="mother_occupation" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_occupation'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="mother_office_address">Office Address <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-building"></i>
-                        <input type="text" id="mother_office_address" name="mother_office_address" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_office_address'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="mother_tel_no">Tel No. <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-phone"></i>
-                        <input type="tel" id="mother_tel_no" name="mother_tel_no" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_tel_no'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="mother_age">Age <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-birthday-cake"></i>
-                        <input type="number" id="mother_age" name="mother_age" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_age'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="mother_dob">Date of Birth <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-calendar-alt"></i>
-                        <input type="date" id="mother_dob" name="mother_dob" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_dob'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="mother_citizenship">Citizenship <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-flag"></i>
-                        <input type="text" id="mother_citizenship" name="mother_citizenship" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_citizenship'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="mother_religion">Religion <span class="required">*</span></label>
-                    <div class="input-group">
-                        <i class="fas fa-church"></i>
-                        <input type="text" id="mother_religion" name="mother_religion" class="form-control" value="<?php echo htmlspecialchars($user_fam['mother_religion'] ?? ''); ?>" required <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="form-buttons">
-        <button type="button" class="prev-btn" onclick="prevStep(3)">Previous</button>
-        <button type="button" class="next-btn" onclick="nextStep(3)">Next</button>
-    </div>
-</div>
-
-<div class="form-section" id="step4" style="display: none;">
-    <h3>Documents</h3>
-    <div class="form-row">
-        <div class="form-group full-width">
-            <label for="cor_file">Certificate of Registration (COR) <span class="required">*</span></label>
-            <div class="file-upload-group">
-                <input type="file" id="cor_file" name="cor_file" accept=".pdf,.png,.jpg,.jpeg" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                <label for="cor_file" class="file-upload-label" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    <i class="fas fa-upload"></i> Choose File
-                </label>
-                <span class="file-name"><?php echo !empty($user_docs['cor_file_path']) ? basename($user_docs['cor_file_path']) : 'No file chosen'; ?></span>
-            </div>
-            <?php if (isset($_SESSION['application_error']) && strpos($_SESSION['application_error'], 'cor_file') !== false): ?>
-                <div class="file-error"><?php echo $_SESSION['application_error']; ?></div>
-            <?php endif; ?>
-        </div>
-    </div>
-    <div class="form-row">
-        <div class="form-group full-width">
-            <label for="indigency_file">Certificate of Indigency <span class="required">*</span></label>
-            <div class="file-upload-group">
-                <input type="file" id="indigency_file" name="indigency_file" accept=".pdf,.png,.jpg,.jpeg" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                <label for="indigency_file" class="file-upload-label" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    <i class="fas fa-upload"></i> Choose File
-                </label>
-                <span class="file-name"><?php echo !empty($user_docs['indigency_file_path']) ? basename($user_docs['indigency_file_path']) : 'No file chosen'; ?></span>
-            </div>
-            <?php if (isset($_SESSION['application_error']) && strpos($_SESSION['application_error'], 'indigency_file') !== false): ?>
-                <div class="file-error"><?php echo $_SESSION['application_error']; ?></div>
-            <?php endif; ?>
-        </div>
-    </div>
-    <div class="form-row">
-        <div class="form-group full-width">
-            <label for="voter_file">Voter's Certificate <span class="required">*</span></label>
-            <div class="file-upload-group">
-                <input type="file" id="voter_file" name="voter_file" accept=".pdf,.png,.jpg,.jpeg" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                <label for="voter_file" class="file-upload-label" <?php echo !$is_application_open ? 'disabled' : ''; ?>>
-                    <i class="fas fa-upload"></i> Choose File
-                </label>
-                <span class="file-name"><?php echo !empty($user_docs['voter_file_path']) ? basename($user_docs['voter_file_path']) : 'No file chosen'; ?></span>
-            </div>
-            <?php if (isset($_SESSION['application_error']) && strpos($_SESSION['application_error'], 'voter_file') !== false): ?>
-                <div class="file-error"><?php echo $_SESSION['application_error']; ?></div>
-            <?php endif; ?>
-        </div>
-    </div>
-    <div class="form-buttons">
-        <button type="button" class="prev-btn" onclick="prevStep(4)">Previous</button>
-        <button type="button" class="next-btn" onclick="nextStep(4)">Next</button>
+        </form>
     </div>
 </div>
 
